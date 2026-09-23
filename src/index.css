@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    font-size: 17.5px;
+    -webkit-text-size-adjust: 100%;
+  }
+
   :root {
     --bg: #F7F3EA;
     --surface: #FFF9F0;
