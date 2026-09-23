@@ -7,9 +7,13 @@ import {
   Play,
   ChevronDown,
   ChevronUp,
+  Pencil,
+  Trash2,
+  Check,
+  X,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { Project } from '../types';
+import { Project, Milestone } from '../types';
 
 export const ProjectsPage: React.FC = () => {
   const {
@@ -18,6 +22,8 @@ export const ProjectsPage: React.FC = () => {
     toggleProjectStatus,
     toggleMilestone,
     addMilestone,
+    editMilestone,
+    deleteMilestone,
     startFocusWithTask,
   } = useApp();
 
@@ -165,6 +171,8 @@ export const ProjectsPage: React.FC = () => {
                 project={project}
                 onToggleStatus={toggleProjectStatus}
                 onToggleMilestone={toggleMilestone}
+                onEditMilestone={editMilestone}
+                onDeleteMilestone={deleteMilestone}
                 onStartFocus={startFocusWithTask}
                 onAddMilestoneSubmit={handleAddMilestone}
                 isAddingMilestone={addingMilestoneProjId === project.id}
@@ -207,6 +215,8 @@ export const ProjectsPage: React.FC = () => {
                 project={project}
                 onToggleStatus={toggleProjectStatus}
                 onToggleMilestone={toggleMilestone}
+                onEditMilestone={editMilestone}
+                onDeleteMilestone={deleteMilestone}
                 onStartFocus={startFocusWithTask}
                 onAddMilestoneSubmit={handleAddMilestone}
                 isAddingMilestone={addingMilestoneProjId === project.id}
@@ -228,10 +238,134 @@ export const ProjectsPage: React.FC = () => {
   );
 };
 
+interface MilestoneItemProps {
+  milestone: Milestone;
+  projectId: string;
+  onToggle: (projectId: string, milestoneId: string) => void;
+  onEdit: (projectId: string, milestoneId: string, newTitle: string) => void;
+  onDelete: (projectId: string, milestoneId: string) => void;
+}
+
+const MilestoneItem: React.FC<MilestoneItemProps> = ({
+  milestone,
+  projectId,
+  onToggle,
+  onEdit,
+  onDelete,
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(milestone.title);
+
+  const handleSave = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = editTitle.trim();
+    if (trimmed && trimmed !== milestone.title) {
+      onEdit(projectId, milestone.id, trimmed);
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      setEditTitle(milestone.title);
+      setIsEditing(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <form
+        onSubmit={handleSave}
+        className="flex items-center gap-2 p-1.5 rounded-xl bg-light-bg dark:bg-night-elevated border-2 border-light-border dark:border-night-border animate-fadeIn"
+      >
+        <input
+          type="text"
+          value={editTitle}
+          onChange={(e) => setEditTitle(e.target.value)}
+          onKeyDown={handleKeyDown}
+          autoFocus
+          className="flex-1 px-2.5 py-1 bg-transparent text-xs sm:text-sm text-light-text dark:text-night-text focus:outline-none"
+        />
+        <button
+          type="submit"
+          className="p-1.5 rounded-lg bg-light-text text-light-bg dark:bg-night-text dark:text-night-bg hover:opacity-90 btn-clean"
+          title="Save milestone"
+        >
+          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setEditTitle(milestone.title);
+            setIsEditing(false);
+          }}
+          className="p-1.5 rounded-lg text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text hover:bg-light-surface dark:hover:bg-night-surface btn-clean"
+          title="Cancel"
+        >
+          <X className="w-3.5 h-3.5 stroke-[2]" />
+        </button>
+      </form>
+    );
+  }
+
+  return (
+    <div className="group flex items-center justify-between gap-3 p-2.5 rounded-xl hover:bg-light-bg/80 dark:hover:bg-night-elevated/80 transition-colors">
+      <div
+        onClick={() => onToggle(projectId, milestone.id)}
+        className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer select-none"
+      >
+        {milestone.completed ? (
+          <CheckSquare className="w-5 h-5 text-pastel-sage-ink dark:text-pastel-sage stroke-[2.2] shrink-0" />
+        ) : (
+          <Square className="w-5 h-5 text-light-muted dark:text-night-muted stroke-[2] shrink-0" />
+        )}
+        <span
+          className={`text-xs sm:text-sm font-medium truncate ${
+            milestone.completed
+              ? 'line-through text-light-muted dark:text-night-muted'
+              : 'text-light-text dark:text-night-text'
+          }`}
+        >
+          {milestone.title}
+        </span>
+      </div>
+
+      {/* Action buttons: Edit & Delete */}
+      <div className="flex items-center gap-1 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setEditTitle(milestone.title);
+            setIsEditing(true);
+          }}
+          className="p-1.5 rounded-lg text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text hover:bg-light-surface dark:hover:bg-night-surface transition-colors btn-clean"
+          title="Edit milestone"
+        >
+          <Pencil className="w-3.5 h-3.5 stroke-[2]" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(projectId, milestone.id);
+          }}
+          className="p-1.5 rounded-lg text-light-muted dark:text-night-muted hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-500/10 transition-colors btn-clean"
+          title="Delete milestone"
+        >
+          <Trash2 className="w-3.5 h-3.5 stroke-[2]" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 interface ProjectCardProps {
   project: Project;
   onToggleStatus: (id: string) => void;
   onToggleMilestone: (projectId: string, milestoneId: string) => void;
+  onEditMilestone: (projectId: string, milestoneId: string, newTitle: string) => void;
+  onDeleteMilestone: (projectId: string, milestoneId: string) => void;
   onStartFocus: (taskTitle: string, duration?: number, taskId?: string, projectId?: string) => void;
   onAddMilestoneSubmit: (projectId: string, e: React.FormEvent) => void;
   isAddingMilestone: boolean;
@@ -244,6 +378,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   project,
   onToggleStatus,
   onToggleMilestone,
+  onEditMilestone,
+  onDeleteMilestone,
   onStartFocus,
   onAddMilestoneSubmit,
   isAddingMilestone,
@@ -313,26 +449,14 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
           {/* Milestones checklist */}
           <div className="space-y-2">
             {project.milestones.map((m) => (
-              <div
+              <MilestoneItem
                 key={m.id}
-                onClick={() => onToggleMilestone(project.id, m.id)}
-                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-light-bg/80 dark:hover:bg-night-elevated/80 cursor-pointer transition-colors"
-              >
-                {m.completed ? (
-                  <CheckSquare className="w-5 h-5 text-pastel-sage-ink dark:text-pastel-sage stroke-[2.2] shrink-0" />
-                ) : (
-                  <Square className="w-5 h-5 text-light-muted dark:text-night-muted stroke-[2] shrink-0" />
-                )}
-                <span
-                  className={`text-sm font-medium ${
-                    m.completed
-                      ? 'line-through text-light-muted dark:text-night-muted'
-                      : 'text-light-text dark:text-night-text'
-                  }`}
-                >
-                  {m.title}
-                </span>
-              </div>
+                milestone={m}
+                projectId={project.id}
+                onToggle={onToggleMilestone}
+                onEdit={onEditMilestone}
+                onDelete={onDeleteMilestone}
+              />
             ))}
           </div>
 

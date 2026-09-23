@@ -96,6 +96,8 @@ interface AppContextType {
   toggleProjectStatus: (id: string) => void;
   toggleMilestone: (projectId: string, milestoneId: string) => void;
   addMilestone: (projectId: string, title: string) => void;
+  editMilestone: (projectId: string, milestoneId: string, newTitle: string) => void;
+  deleteMilestone: (projectId: string, milestoneId: string) => void;
 
   // For Fun
   forFunItems: ForFunItem[];
@@ -632,6 +634,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const editMilestone = (projectId: string, milestoneId: string, newTitle: string) => {
+    const trimmed = newTitle.trim();
+    if (!trimmed) return;
+
+    const currentProj = projects.find((p) => p.id === projectId);
+    if (!currentProj) return;
+
+    const updatedMilestones = currentProj.milestones.map((m) =>
+      m.id === milestoneId ? { ...m, title: trimmed } : m
+    );
+
+    setProjects((prev) =>
+      prev.map((p) => (p.id === projectId ? { ...p, milestones: updatedMilestones } : p))
+    );
+
+    if (user?.id) {
+      projectService.updateProject(user.id, projectId, { milestones: updatedMilestones }).then((res) => {
+        if (res.error) {
+          console.error('Error updating milestone in Supabase:', res.error);
+          showToast('unable to sync with cloud');
+        }
+      }).catch((err) => {
+        console.error('Error updating milestone in Supabase:', err);
+        showToast('unable to sync with cloud');
+      });
+    }
+    showToast('milestone updated');
+  };
+
+  const deleteMilestone = (projectId: string, milestoneId: string) => {
+    const currentProj = projects.find((p) => p.id === projectId);
+    if (!currentProj) return;
+
+    const updatedMilestones = currentProj.milestones.filter((m) => m.id !== milestoneId);
+
+    setProjects((prev) =>
+      prev.map((p) => (p.id === projectId ? { ...p, milestones: updatedMilestones } : p))
+    );
+
+    if (user?.id) {
+      projectService.updateProject(user.id, projectId, { milestones: updatedMilestones }).then((res) => {
+        if (res.error) {
+          console.error('Error deleting milestone in Supabase:', res.error);
+          showToast('unable to sync with cloud');
+        }
+      }).catch((err) => {
+        console.error('Error deleting milestone in Supabase:', err);
+        showToast('unable to sync with cloud');
+      });
+    }
+    showToast('milestone removed');
+  };
+
   // For Fun
   const addForFunItem = (title: string, duration?: string) => {
     const newItem: ForFunItem = {
@@ -1109,6 +1164,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleProjectStatus,
         toggleMilestone,
         addMilestone,
+        editMilestone,
+        deleteMilestone,
         forFunItems,
         addForFunItem,
         deleteForFunItem,
