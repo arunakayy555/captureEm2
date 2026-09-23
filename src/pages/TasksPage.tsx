@@ -35,6 +35,8 @@ export function getTaskCubicle(task: Task): GridCubicle {
 export const TasksPage: React.FC = () => {
   const {
     tasks,
+    todayCompletedTasksCount,
+    lifetimeCompletedTasksCount,
     addTask,
     updateTask,
     deleteTask,
@@ -131,24 +133,22 @@ export const TasksPage: React.FC = () => {
   const getSectionTasks = (sec: TaskSection) =>
     tasks.filter((t) => t.section === sec && t.status === (showCompleted ? 'completed' : 'active'));
 
-  const completedCount = tasks.filter((t) => t.status === 'completed').length;
-
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8 animate-fadeIn">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8 animate-fadeIn">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-light-border/80 dark:border-night-border/80 pb-6">
         <div>
-          <h1 className="font-serif italic font-semibold text-4xl sm:text-5xl text-light-text dark:text-night-text tracking-tight">
+          <h1 className="font-serif italic font-semibold text-5xl sm:text-6xl text-light-text dark:text-night-text tracking-tight">
             things i got to do
           </h1>
-          <p className="font-serif italic font-medium text-xl sm:text-2xl text-light-muted dark:text-night-muted mt-1">
+          <p className="font-serif italic font-medium text-2xl sm:text-3xl text-light-muted dark:text-night-muted mt-1.5">
             "i remembered something. i'll put it here."
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* View toggle (Columns / 2x2 Grid) */}
-          <div className="flex items-center bg-light-surface dark:bg-night-surface border-2 border-light-border dark:border-night-border rounded-xl p-0.5">
+          <div className="flex items-center bg-light-surface dark:bg-night-surface border-2 border-light-border dark:border-night-border rounded-xl p-0.5 shadow-xs">
             <button
               onClick={() => setViewMode('columns')}
               className={`p-1.5 rounded-lg transition-colors btn-clean ${
@@ -173,16 +173,17 @@ export const TasksPage: React.FC = () => {
             </button>
           </div>
 
-          {completedCount > 0 && (
+          {(lifetimeCompletedTasksCount > 0 || todayCompletedTasksCount > 0) && (
             <button
               onClick={() => setShowCompleted(!showCompleted)}
               className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-colors btn-clean ${
                 showCompleted
                   ? 'bg-pastel-sage/20 text-pastel-sage-ink dark:text-pastel-sage border-2 border-pastel-sage/50'
-                  : 'text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text'
+                  : 'text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text bg-light-surface dark:bg-night-surface border-2 border-light-border dark:border-night-border'
               }`}
+              title={`${lifetimeCompletedTasksCount} total completed tasks in history`}
             >
-              {showCompleted ? 'view active' : `${completedCount} completed`}
+              {showCompleted ? 'view active' : `${todayCompletedTasksCount} completed today`}
             </button>
           )}
 
@@ -197,6 +198,7 @@ export const TasksPage: React.FC = () => {
           )}
         </div>
       </div>
+
 
       {/* Inline Global Add Task Card */}
       {isAdding && (

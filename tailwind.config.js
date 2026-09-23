@@ -26,6 +26,20 @@ export default {
           muted: '#544B50',   // Defined Readable Cocoa Muted (High Contrast)
           border: '#C8BEAF',  // Defined Soft Warm Beige
         },
+        // Cotton Candy theme colors
+        cotton: {
+          pink: '#FFB6D5',    // Bright Soft Pink
+          'pink-vibrant': '#FF85B3',
+          blue: '#9DD9F7',    // Soft Sky Blue
+          'blue-vibrant': '#66BEEC',
+          lavender: '#D8C5FC',// Soft Lavender Transition
+          bg: '#FFDDEB',      // Base Tint
+          surface: '#FFFFFF', // Clean surface
+          elevated: '#FFFFFF',// Crisp elevated
+          text: '#20142B',    // Deep Plum-Indigo Ink (High Contrast)
+          muted: '#614B6E',   // Readable Muted Plum
+          border: '#F3C4DD',  // Soft rose border
+        },
         // Pastel accent palette
         pastel: {
           yellow: '#F2E3A5', // Butter Yellow

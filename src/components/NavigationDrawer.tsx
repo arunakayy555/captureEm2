@@ -7,8 +7,10 @@ import {
   Activity,
   Smile,
   CalendarCheck,
+  ShoppingBag,
   Moon,
   Sun,
+  Sparkles,
   X,
   LogOut,
 } from 'lucide-react';
@@ -28,13 +30,14 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'focus', label: 'focus', icon: Timer, accentColor: 'text-pastel-blue-ink dark:text-pastel-blue' },
   { id: 'tasks', label: 'things i got to do', icon: CheckSquare, accentColor: 'text-pastel-sage-ink dark:text-pastel-sage' },
   { id: 'projects', label: 'projects', icon: Layers, accentColor: 'text-pastel-mauve-ink dark:text-pastel-mauve' },
+  { id: 'purchases', label: 'purchase list', icon: ShoppingBag, accentColor: 'text-pastel-sage-ink dark:text-pastel-sage' },
   { id: 'body', label: 'body', icon: Activity, accentColor: 'text-pastel-lavender-ink dark:text-pastel-lavender' },
   { id: 'for_fun', label: 'for fun', icon: Smile, accentColor: 'text-pastel-pink-ink dark:text-pastel-pink' },
   { id: 'review', label: 'so far', icon: CalendarCheck, accentColor: 'text-pastel-lavender-ink dark:text-pastel-lavender' },
 ];
 
 export const NavigationDrawer: React.FC = () => {
-  const { isDrawerOpen, setIsDrawerOpen, page, setPage, settings, toggleTheme } = useApp();
+  const { isDrawerOpen, setIsDrawerOpen, page, setPage, settings, toggleTheme, setCottonCandyPanelMode } = useApp();
   const { user, signOut } = useAuth();
   const drawerRef = useRef<HTMLDivElement>(null);
 
@@ -138,19 +141,59 @@ export const NavigationDrawer: React.FC = () => {
             className="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl bg-light-surface dark:bg-night-elevated border-2 border-light-border dark:border-night-border text-xs text-light-text dark:text-night-text hover:border-pastel-yellow transition-all duration-200 btn-clean"
           >
             <div className="flex items-center gap-2.5">
-              {settings.theme === 'night' ? (
+              {settings.theme === 'night' && (
                 <Moon className="w-4 h-4 text-pastel-lavender-ink dark:text-pastel-lavender stroke-[2]" />
-              ) : (
+              )}
+              {settings.theme === 'light' && (
                 <Sun className="w-4 h-4 text-pastel-yellow-ink dark:text-pastel-yellow stroke-[2]" />
               )}
+              {settings.theme === 'cotton_candy' && (
+                <Sparkles className="w-4 h-4 text-[#F472B6] stroke-[2]" />
+              )}
               <span className="lowercase font-sans text-xs font-semibold tracking-wider text-light-muted dark:text-night-muted">
-                {settings.theme === 'night' ? 'night mode' : 'light mode'}
+                {settings.theme === 'night'
+                  ? 'night mode'
+                  : settings.theme === 'light'
+                  ? 'light mode'
+                  : 'cotton candy'}
               </span>
             </div>
             <span className="font-serif italic font-semibold text-xs text-light-muted dark:text-night-muted">
-              {settings.theme === 'night' ? 'ink black' : 'warm cream'}
+              {settings.theme === 'night'
+                ? 'ink black'
+                : settings.theme === 'light'
+                ? 'warm cream'
+                : 'pink & blue'}
             </span>
           </button>
+
+          {/* Cotton Candy Panels Switcher (Light Panels vs Dark Panels) */}
+          {settings.theme === 'cotton_candy' && (
+            <div className="flex items-center gap-1.5 p-1 bg-light-surface/90 dark:bg-night-elevated/90 border border-light-border/80 dark:border-night-border/80 rounded-2xl text-xs shadow-xs animate-fadeIn">
+              <button
+                type="button"
+                onClick={() => setCottonCandyPanelMode('light')}
+                className={`flex-1 py-1.5 px-2.5 rounded-xl font-sans text-xs transition-all btn-clean ${
+                  settings.cottonCandyPanelMode !== 'dark'
+                    ? 'bg-light-text text-light-bg dark:bg-night-text dark:text-night-bg shadow-xs font-bold'
+                    : 'text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text font-medium'
+                }`}
+              >
+                light panels
+              </button>
+              <button
+                type="button"
+                onClick={() => setCottonCandyPanelMode('dark')}
+                className={`flex-1 py-1.5 px-2.5 rounded-xl font-sans text-xs transition-all btn-clean ${
+                  settings.cottonCandyPanelMode === 'dark'
+                    ? 'bg-light-text text-light-bg dark:bg-night-text dark:text-night-bg shadow-xs font-bold'
+                    : 'text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text font-medium'
+                }`}
+              >
+                dark panels
+              </button>
+            </div>
+          )}
 
           {user && (
             <div className="flex items-center justify-between px-4 py-2 rounded-2xl bg-light-surface/60 dark:bg-night-elevated/60 border border-light-border/60 dark:border-night-border/60 text-xs">

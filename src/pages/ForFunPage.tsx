@@ -24,17 +24,18 @@ export const ForFunPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-10 animate-fadeIn">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10 animate-fadeIn">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-light-border/80 dark:border-night-border/80 pb-6">
         <div>
-          <h1 className="font-serif italic font-semibold text-4xl sm:text-5xl text-light-text dark:text-night-text tracking-tight">
+          <h1 className="font-serif italic font-semibold text-5xl sm:text-6xl text-light-text dark:text-night-text tracking-tight">
             for fun
           </h1>
-          <p className="font-serif italic font-medium text-xl sm:text-2xl text-light-muted dark:text-night-muted mt-1">
+          <p className="font-serif italic font-medium text-2xl sm:text-3xl text-light-muted dark:text-night-muted mt-1.5">
             things i feel like doing
           </p>
         </div>
+
 
         {!isAdding && (
           <button
@@ -95,7 +96,7 @@ export const ForFunPage: React.FC = () => {
       )}
 
       {/* Grid of Fun Activities */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {forFunItems.map((item) => (
           <div
             key={item.id}

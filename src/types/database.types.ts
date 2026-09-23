@@ -260,6 +260,44 @@ export interface Database {
           updated_at?: string;
         };
       };
+      calendar_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          date: string;
+          start_time: string | null;
+          end_time: string | null;
+          notes: string | null;
+          color: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          user_id: string;
+          title: string;
+          date: string;
+          start_time?: string | null;
+          end_time?: string | null;
+          notes?: string | null;
+          color?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string;
+          date?: string;
+          start_time?: string | null;
+          end_time?: string | null;
+          notes?: string | null;
+          color?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 }

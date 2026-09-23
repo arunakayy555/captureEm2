@@ -12,15 +12,22 @@ import {
   FocusSession,
   WeekReview,
   UserSettings,
+  AppTheme,
   BodyTask,
+  CalendarEvent,
+  PurchaseItem,
 } from '../types';
 import { storage } from '../utils/storage';
 import { sound } from '../utils/audio';
+import { toDateKey } from '../utils/date';
 import { useAuth } from './AuthContext';
 import { taskService } from '../services/taskService';
 import { projectService } from '../services/projectService';
 import { focusSessionService } from '../services/focusSessionService';
 import { reviewService } from '../services/reviewService';
+import { calendarEventService } from '../services/calendarEventService';
+import { bodyWellnessService } from '../services/bodyWellnessService';
+import { purchaseService } from '../services/purchaseService';
 
 interface AppContextType {
   // Navigation & Modals
@@ -36,18 +43,29 @@ interface AppContextType {
   // Settings & Theme
   settings: UserSettings;
   toggleTheme: () => void;
+  setCottonCandyPanelMode: (mode: 'light' | 'dark') => void;
+  toggleCottonCandyPanelMode: () => void;
   updateSettings: (newSettings: Partial<UserSettings>) => void;
 
   // Tasks
   tasks: Task[];
   rightNowTask: Task | undefined;
   nextTasks: Task[];
+  todayCompletedTasksCount: number;
+  lifetimeCompletedTasksCount: number;
   addTask: (task: Omit<Task, 'id' | 'created_at' | 'status'> & { status?: 'active' | 'completed' }) => Task;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
   setTaskAsRightNow: (id: string) => void;
   moveTaskSection: (id: string, section: TaskSection) => void;
   toggleTaskCompleted: (id: string) => void;
+
+  // Calendar Events
+  calendarEvents: CalendarEvent[];
+  addCalendarEvent: (event: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>) => CalendarEvent;
+  updateCalendarEvent: (id: string, updates: Partial<CalendarEvent>) => void;
+  deleteCalendarEvent: (id: string) => void;
+
 
   // Focus Flow
   activeFocusTask: string;
@@ -86,13 +104,25 @@ interface AppContextType {
 
   // Body Wellness
   body: BodyWellness;
+  bodyEntries: BodyWellness[];
   updateBody: (updates: Partial<BodyWellness>) => void;
-  toggleBodyTask: (taskId: string) => void;
-  addBodyTask: (title: string) => void;
+  updateBodyForDate: (dateKey: string, updates: Partial<BodyWellness>) => void;
+  toggleBodyTask: (taskId: string, dateKey?: string) => void;
+  addBodyTask: (title: string, dateKey?: string) => void;
+  deleteBodyTask: (taskId: string, dateKey?: string) => void;
 
   // Review
   reviews: WeekReview[];
   saveReview: (reviewData: Partial<WeekReview>) => void;
+
+  // Purchases
+  purchases: PurchaseItem[];
+  addPurchaseItem: (name: string, notes?: string) => PurchaseItem;
+  updatePurchaseItem: (id: string, updates: Partial<PurchaseItem>) => void;
+  togglePurchaseStatus: (id: string) => void;
+  discardPurchaseItem: (id: string) => void;
+  restorePurchaseItem: (id: string) => void;
+  deletePurchaseItem: (id: string) => void;
 
   // Toasts
   toastMessage: string | null;
@@ -112,9 +142,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [forFunItems, setForFunItems] = useState<ForFunItem[]>(storage.getForFun);
-  const [body, setBody] = useState<BodyWellness>(storage.getBody);
+  const [bodyEntries, setBodyEntries] = useState<BodyWellness[]>([]);
   const [focusSessions, setFocusSessions] = useState<FocusSession[]>([]);
   const [reviews, setReviews] = useState<WeekReview[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [purchases, setPurchases] = useState<PurchaseItem[]>([]);
 
   const [activeFocusTask, setActiveFocusTask] = useState<string>('');
   const [activeFocusTaskId, setActiveFocusTaskId] = useState<string | undefined>(undefined);
@@ -126,21 +158,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Sync theme with HTML class
   useEffect(() => {
     const root = document.documentElement;
+    root.classList.remove('dark', 'cotton-candy', 'cotton-candy-dark-panels');
     if (settings.theme === 'night') {
       root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
+    } else if (settings.theme === 'cotton_candy') {
+      root.classList.add('cotton-candy');
+      if (settings.cottonCandyPanelMode === 'dark') {
+        root.classList.add('cotton-candy-dark-panels');
+      }
     }
     storage.saveSettings(settings);
   }, [settings]);
 
-  // Fetch remote tasks, projects, sessions & reviews from Supabase when user logs in
+  // Fetch remote tasks, projects, sessions, reviews, calendar events & purchases from Supabase when user logs in
   useEffect(() => {
     if (!user?.id) {
       setTasks([]);
       setProjects([]);
       setFocusSessions([]);
       setReviews([]);
+      setCalendarEvents([]);
+      setBodyEntries([]);
+      setPurchases([]);
       return;
     }
 
@@ -148,11 +187,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const fetchCloudData = async () => {
       try {
-        const [tasksRes, projectsRes, sessionsRes, reviewsRes] = await Promise.all([
+        const [tasksRes, projectsRes, sessionsRes, reviewsRes, eventsRes, bodyRes, purchasesRes] = await Promise.all([
           taskService.getTasks(user.id),
           projectService.getProjects(user.id),
           focusSessionService.getFocusSessions(user.id),
           reviewService.getReviews(user.id),
+          calendarEventService.getEvents(user.id),
+          bodyWellnessService.getWellnessEntries(user.id),
+          purchaseService.getPurchases(user.id),
         ]);
 
         if (!isMounted) return;
@@ -169,8 +211,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (reviewsRes.data) {
           setReviews(reviewsRes.data);
         }
+        if (eventsRes.data) {
+          setCalendarEvents(eventsRes.data);
+        }
+        if (bodyRes.data) {
+          setBodyEntries(bodyRes.data);
+        }
+        if (purchasesRes.data) {
+          setPurchases(purchasesRes.data);
+        }
       } catch (err) {
-        console.error('Failed to load cloud tasks/projects/sessions/reviews:', err);
+        console.error('Failed to load cloud data:', err);
       }
     };
 
@@ -186,9 +237,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     storage.saveForFun(forFunItems);
   }, [forFunItems]);
 
-  useEffect(() => {
-    storage.saveBody(body);
-  }, [body]);
+
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -198,15 +247,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleTheme = () => {
+    setSettings((prev) => {
+      let nextTheme: AppTheme = 'night';
+      if (prev.theme === 'night') nextTheme = 'light';
+      else if (prev.theme === 'light') nextTheme = 'cotton_candy';
+      else nextTheme = 'night';
+      return {
+        ...prev,
+        theme: nextTheme,
+      };
+    });
+  };
+
+  const setCottonCandyPanelMode = (mode: 'light' | 'dark') => {
     setSettings((prev) => ({
       ...prev,
-      theme: prev.theme === 'night' ? 'light' : 'night',
+      cottonCandyPanelMode: mode,
+    }));
+  };
+
+  const toggleCottonCandyPanelMode = () => {
+    setSettings((prev) => ({
+      ...prev,
+      cottonCandyPanelMode: prev.cottonCandyPanelMode === 'dark' ? 'light' : 'dark',
     }));
   };
 
   const updateSettings = (newSettings: Partial<UserSettings>) => {
     setSettings((prev) => ({ ...prev, ...newSettings }));
   };
+
+  // Dynamic completed counts: Today vs Lifetime
+  const todayKey = toDateKey(new Date());
+  const todayCompletedTasksCount = tasks.filter(
+    (t) => t.status === 'completed' && t.completed_at && toDateKey(t.completed_at) === todayKey
+  ).length;
+  const lifetimeCompletedTasksCount = tasks.filter((t) => t.status === 'completed').length;
 
   // Derived tasks
   const rightNowTask = tasks.find((t) => t.is_right_now && t.status === 'active') ||
@@ -216,6 +292,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const nextTasks = tasks
     .filter((t) => t.id !== rightNowTask?.id && t.status === 'active')
     .slice(0, 4);
+
 
   const addTask = (taskData: Omit<Task, 'id' | 'created_at' | 'status'> & { status?: 'active' | 'completed' }) => {
     const newTask: Task = {
@@ -571,31 +648,107 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setForFunItems((prev) => prev.filter((item) => item.id !== id));
   };
 
+  // Derived today's body wellness entry
+  const todayBody: BodyWellness = bodyEntries.find((b) => b.date === todayKey) || {
+    id: 'bw-' + todayKey,
+    date: todayKey,
+    energy: 7,
+    sleep: 'Good',
+    movement: 'Planned',
+    water: 'Good',
+    tasks: [],
+  };
+
   // Body
+  const updateBodyForDate = (dateKey: string, updates: Partial<BodyWellness>) => {
+    let savedTarget: BodyWellness | undefined;
+    setBodyEntries((prev) => {
+      const existingIndex = prev.findIndex((b) => b.date === dateKey);
+      if (existingIndex >= 0) {
+        const updated = {
+          ...prev[existingIndex],
+          ...updates,
+          updated_at: new Date().toISOString(),
+        };
+        savedTarget = updated;
+        const copy = [...prev];
+        copy[existingIndex] = updated;
+        return copy;
+      } else {
+        const newEntry: BodyWellness = {
+          id: 'bw-' + dateKey + '-' + Math.random().toString(36).substring(2, 6),
+          date: dateKey,
+          energy: 7,
+          sleep: 'Good',
+          movement: 'Planned',
+          water: 'Good',
+          tasks: [],
+          ...updates,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        savedTarget = newEntry;
+        return [newEntry, ...prev];
+      }
+    });
+
+    if (user?.id && savedTarget) {
+      bodyWellnessService.saveWellnessEntry(user.id, savedTarget).then((res) => {
+        if (res.error) {
+          console.error('Error saving body wellness in Supabase:', res.error);
+          showToast('unable to sync body with cloud');
+        }
+      }).catch((err) => {
+        console.error('Error saving body wellness in Supabase:', err);
+        showToast('unable to sync body with cloud');
+      });
+    }
+  };
+
   const updateBody = (updates: Partial<BodyWellness>) => {
-    setBody((prev) => ({ ...prev, ...updates }));
+    updateBodyForDate(todayKey, updates);
   };
 
-  const toggleBodyTask = (taskId: string) => {
-    setBody((prev) => ({
-      ...prev,
-      tasks: prev.tasks.map((t) =>
-        t.id === taskId ? { ...t, completed: !t.completed } : t
-      ),
-    }));
+  const toggleBodyTask = (taskId: string, dateKey = todayKey) => {
+    const currentEntry = bodyEntries.find((b) => b.date === dateKey) || {
+      id: 'bw-' + dateKey,
+      date: dateKey,
+      energy: 7,
+      sleep: 'Good' as const,
+      movement: 'Planned' as const,
+      water: 'Good' as const,
+      tasks: [],
+    };
+    const updatedTasks = currentEntry.tasks.map((t) =>
+      t.id === taskId ? { ...t, completed: !t.completed } : t
+    );
+    updateBodyForDate(dateKey, { tasks: updatedTasks });
   };
 
-  const addBodyTask = (title: string) => {
+  const addBodyTask = (title: string, dateKey = todayKey) => {
+    const currentEntry = bodyEntries.find((b) => b.date === dateKey) || {
+      id: 'bw-' + dateKey,
+      date: dateKey,
+      energy: 7,
+      sleep: 'Good' as const,
+      movement: 'Planned' as const,
+      water: 'Good' as const,
+      tasks: [],
+    };
     const newTask: BodyTask = {
-      id: 'bt-' + Date.now(),
+      id: 'bt-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
       title: title.trim(),
       completed: false,
     };
-    setBody((prev) => ({
-      ...prev,
-      tasks: [...prev.tasks, newTask],
-    }));
-    showToast('added');
+    updateBodyForDate(dateKey, { tasks: [...currentEntry.tasks, newTask] });
+    showToast('added to body care');
+  };
+
+  const deleteBodyTask = (taskId: string, dateKey = todayKey) => {
+    const currentEntry = bodyEntries.find((b) => b.date === dateKey);
+    if (!currentEntry) return;
+    const updatedTasks = currentEntry.tasks.filter((t) => t.id !== taskId);
+    updateBodyForDate(dateKey, { tasks: updatedTasks });
   };
 
   // Reviews
@@ -646,6 +799,268 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('review saved');
   };
 
+  // Calendar Events
+  const addCalendarEvent = (eventData: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>) => {
+    const newEvent: CalendarEvent = {
+      id: 'event-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+      title: eventData.title.trim(),
+      date: eventData.date,
+      start_time: eventData.start_time?.trim() || undefined,
+      end_time: eventData.end_time?.trim() || undefined,
+      notes: eventData.notes?.trim() || undefined,
+      color: eventData.color || 'yellow',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    setCalendarEvents((prev) => [...prev, newEvent]);
+
+    if (user?.id) {
+      calendarEventService.createEvent(user.id, newEvent).then((res) => {
+        if (res.error) {
+          console.error('Error creating calendar event in Supabase:', res.error);
+          showToast('unable to sync event with cloud');
+        }
+      }).catch((err) => {
+        console.error('Error creating calendar event in Supabase:', err);
+        showToast('unable to sync event with cloud');
+      });
+    }
+
+    showToast('event added');
+    return newEvent;
+  };
+
+  const updateCalendarEvent = (id: string, updates: Partial<CalendarEvent>) => {
+    setCalendarEvents((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, ...updates, updated_at: new Date().toISOString() } : e))
+    );
+
+    if (user?.id) {
+      calendarEventService.updateEvent(user.id, id, updates).then((res) => {
+        if (res.error) {
+          console.error('Error updating calendar event in Supabase:', res.error);
+          showToast('unable to sync with cloud');
+        }
+      }).catch((err) => {
+        console.error('Error updating calendar event in Supabase:', err);
+        showToast('unable to sync with cloud');
+      });
+    }
+  };
+
+  const deleteCalendarEvent = (id: string) => {
+    setCalendarEvents((prev) => prev.filter((e) => e.id !== id));
+
+    if (user?.id) {
+      calendarEventService.deleteEvent(user.id, id).then((res) => {
+        if (res.error) {
+          console.error('Error deleting calendar event in Supabase:', res.error);
+          showToast('unable to sync with cloud');
+        }
+      }).catch((err) => {
+        console.error('Error deleting calendar event in Supabase:', err);
+        showToast('unable to sync with cloud');
+      });
+    }
+    showToast('event removed');
+  };
+
+  // Purchases
+  const addPurchaseItem = (name: string, notes?: string) => {
+    const newItem: PurchaseItem = {
+      id: 'purch-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+      name: name.trim(),
+      notes: notes?.trim() || undefined,
+      status: 'active',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    setPurchases((prev) => [newItem, ...prev]);
+
+    if (user?.id) {
+      purchaseService.createPurchase(user.id, newItem).then((res) => {
+        if (res.error) {
+          console.error('Error creating purchase item in Supabase:', res.error);
+          showToast('unable to sync with cloud');
+        }
+      }).catch((err) => {
+        console.error('Error creating purchase item in Supabase:', err);
+        showToast('unable to sync with cloud');
+      });
+    }
+
+    showToast('added to purchase list');
+    return newItem;
+  };
+
+  const updatePurchaseItem = (id: string, updates: Partial<PurchaseItem>) => {
+    // Strictly preserve created_at from existing item
+    let savedItem: PurchaseItem | undefined;
+    setPurchases((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          const updated = {
+            ...item,
+            ...updates,
+            created_at: item.created_at, // Preserve original creation timestamp
+            updated_at: new Date().toISOString(),
+          };
+          savedItem = updated;
+          return updated;
+        }
+        return item;
+      })
+    );
+
+    if (user?.id && savedItem) {
+      purchaseService.updatePurchase(user.id, id, updates).then((res) => {
+        if (res.error) {
+          console.error('Error updating purchase item in Supabase:', res.error);
+          showToast('unable to sync with cloud');
+        }
+      }).catch((err) => {
+        console.error('Error updating purchase item in Supabase:', err);
+        showToast('unable to sync with cloud');
+      });
+    }
+  };
+
+  const togglePurchaseStatus = (id: string) => {
+    const currentItem = purchases.find((p) => p.id === id);
+    if (!currentItem) return;
+
+    const newStatus = currentItem.status === 'active' ? 'purchased' : 'active';
+    const purchasedAt = newStatus === 'purchased' ? new Date().toISOString() : undefined;
+
+    setPurchases((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status: newStatus,
+              purchased_at: purchasedAt,
+              updated_at: new Date().toISOString(),
+            }
+          : item
+      )
+    );
+
+    if (user?.id) {
+      purchaseService.updatePurchase(user.id, id, {
+        status: newStatus,
+        purchased_at: purchasedAt,
+      }).then((res) => {
+        if (res.error) {
+          console.error('Error updating purchase status in Supabase:', res.error);
+          showToast('unable to sync with cloud');
+        }
+      }).catch((err) => {
+        console.error('Error updating purchase status in Supabase:', err);
+        showToast('unable to sync with cloud');
+      });
+    }
+
+    if (newStatus === 'purchased') {
+      sound.playComplete();
+      showToast('marked as purchased');
+    } else {
+      showToast('restored to purchase list');
+    }
+  };
+
+  const discardPurchaseItem = (id: string) => {
+    const currentItem = purchases.find((p) => p.id === id);
+    if (!currentItem) return;
+
+    const discardedAt = new Date().toISOString();
+
+    setPurchases((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status: 'discarded',
+              discarded_at: discardedAt,
+              updated_at: new Date().toISOString(),
+            }
+          : item
+      )
+    );
+
+    if (user?.id) {
+      purchaseService.updatePurchase(user.id, id, {
+        status: 'discarded',
+        discarded_at: discardedAt,
+      }).then((res) => {
+        if (res.error) {
+          console.error('Error discarding purchase in Supabase:', res.error);
+          showToast('unable to sync with cloud');
+        }
+      }).catch((err) => {
+        console.error('Error discarding purchase in Supabase:', err);
+        showToast('unable to sync with cloud');
+      });
+    }
+
+    showToast('discarded from list');
+  };
+
+  const restorePurchaseItem = (id: string) => {
+    const currentItem = purchases.find((p) => p.id === id);
+    if (!currentItem) return;
+
+    setPurchases((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status: 'active',
+              purchased_at: undefined,
+              discarded_at: undefined,
+              updated_at: new Date().toISOString(),
+            }
+          : item
+      )
+    );
+
+    if (user?.id) {
+      purchaseService.updatePurchase(user.id, id, {
+        status: 'active',
+        purchased_at: undefined,
+        discarded_at: undefined,
+      }).then((res) => {
+        if (res.error) {
+          console.error('Error restoring purchase in Supabase:', res.error);
+          showToast('unable to sync with cloud');
+        }
+      }).catch((err) => {
+        console.error('Error restoring purchase in Supabase:', err);
+        showToast('unable to sync with cloud');
+      });
+    }
+
+    showToast('restored to purchase list');
+  };
+
+  const deletePurchaseItem = (id: string) => {
+    setPurchases((prev) => prev.filter((item) => item.id !== id));
+
+    if (user?.id) {
+      purchaseService.deletePurchase(user.id, id).then((res) => {
+        if (res.error) {
+          console.error('Error deleting purchase item in Supabase:', res.error);
+          showToast('unable to sync with cloud');
+        }
+      }).catch((err) => {
+        console.error('Error deleting purchase item in Supabase:', err);
+        showToast('unable to sync with cloud');
+      });
+    }
+    showToast('item removed');
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -659,16 +1074,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsResetOpen,
         settings,
         toggleTheme,
+        setCottonCandyPanelMode,
+        toggleCottonCandyPanelMode,
         updateSettings,
         tasks,
         rightNowTask,
         nextTasks,
+        todayCompletedTasksCount,
+        lifetimeCompletedTasksCount,
         addTask,
         updateTask,
         deleteTask,
         setTaskAsRightNow,
         moveTaskSection,
         toggleTaskCompleted,
+        calendarEvents,
+        addCalendarEvent,
+        updateCalendarEvent,
+        deleteCalendarEvent,
         activeFocusTask,
         setActiveFocusTask,
         activeFocusTaskId,
@@ -689,10 +1112,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         forFunItems,
         addForFunItem,
         deleteForFunItem,
-        body,
+        purchases,
+        addPurchaseItem,
+        updatePurchaseItem,
+        togglePurchaseStatus,
+        discardPurchaseItem,
+        restorePurchaseItem,
+        deletePurchaseItem,
+        body: todayBody,
+        bodyEntries,
         updateBody,
+        updateBodyForDate,
         toggleBodyTask,
         addBodyTask,
+        deleteBodyTask,
         reviews,
         saveReview,
         toastMessage,
@@ -702,6 +1135,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       {children}
     </AppContext.Provider>
   );
+
 };
 
 export const useApp = () => {

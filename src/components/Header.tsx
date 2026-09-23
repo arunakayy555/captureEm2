@@ -25,23 +25,29 @@ export const Header: React.FC = () => {
         return 'things i got to do';
       case 'projects':
         return 'things i\'m making';
+      case 'purchases':
+        return 'purchase list';
       case 'body':
         return 'body';
       case 'for_fun':
         return 'for fun';
       case 'review':
-        return 'the week';
+        return 'calendar & so far';
       default:
         return 'my space';
     }
   };
 
   return (
-    <header className="sticky top-0 z-30 w-full backdrop-blur-md bg-opacity-95 dark:bg-opacity-95 bg-light-bg/90 dark:bg-night-bg/90 border-b-2 border-light-border dark:border-night-border transition-colors duration-200">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 h-16 sm:h-18 flex items-center justify-between">
+    <header
+      id="app-header"
+      className="sticky top-0 z-30 w-full backdrop-blur-md bg-opacity-95 dark:bg-opacity-95 bg-light-bg/90 dark:bg-night-bg/90 border-b-2 border-light-border dark:border-night-border transition-colors duration-200"
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
         {/* Left: Single menu button and Page Title */}
         <div className="flex items-center gap-3">
           <button
+            id="app-header-menu-btn"
             onClick={() => setIsDrawerOpen(!isDrawerOpen)}
             aria-label="Open navigation menu"
             className="p-2.5 -ml-2 rounded-xl text-light-text dark:text-night-text hover:bg-light-surface dark:hover:bg-night-surface border-2 border-transparent hover:border-light-border dark:hover:border-night-border transition-all duration-200 btn-clean focus:outline-none focus:ring-2 focus:ring-pastel-yellow/50"
@@ -49,7 +55,10 @@ export const Header: React.FC = () => {
             <Menu className="w-5 h-5 stroke-[2.2]" />
           </button>
 
-          <span className="font-serif italic font-semibold text-2xl tracking-tight text-light-text dark:text-night-text select-none">
+          <span
+            id="app-header-title"
+            className="font-serif italic font-semibold text-2xl sm:text-3xl tracking-tight text-light-text dark:text-night-text select-none"
+          >
             {getPageTitle()}
           </span>
         </div>
@@ -58,10 +67,10 @@ export const Header: React.FC = () => {
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Subtle Persistent Current Date Display */}
           <div className="hidden md:flex flex-col items-end mr-1 select-none pointer-events-none text-right">
-            <span className="text-[10px] uppercase tracking-wider font-semibold text-light-muted/80 dark:text-night-muted/80 leading-none">
+            <span className="text-[11px] uppercase tracking-wider font-semibold text-light-muted/80 dark:text-night-muted/80 leading-none">
               {today.dayName}
             </span>
-            <span className="font-serif italic text-xs text-light-text/90 dark:text-night-text/90 mt-0.5 leading-tight">
+            <span className="font-serif italic text-xs sm:text-sm text-light-text/90 dark:text-night-text/90 mt-0.5 leading-tight">
               {today.dateStr}
             </span>
           </div>

@@ -185,10 +185,10 @@ export const FocusPage: React.FC = () => {
     return (
       <div className="max-w-xl mx-auto px-4 sm:px-6 py-12 sm:py-20 text-center space-y-12 animate-fadeIn">
         <div className="space-y-2">
-          <p className="font-serif italic font-medium text-xl text-pastel-yellow-ink dark:text-pastel-yellow">
+          <p className="font-serif italic font-semibold text-2xl sm:text-3xl text-pastel-yellow-ink dark:text-pastel-yellow">
             let's begin
           </p>
-          <h1 className="text-xs uppercase tracking-widest font-bold text-light-muted dark:text-night-muted">
+          <h1 className="text-sm sm:text-base uppercase tracking-widest font-bold text-light-muted dark:text-night-muted">
             current focus
           </h1>
         </div>
@@ -200,8 +200,9 @@ export const FocusPage: React.FC = () => {
             value={activeFocusTask}
             onChange={(e) => setActiveFocusTask(e.target.value)}
             placeholder="what will you focus on?"
-            className="w-full text-center font-serif italic font-semibold text-3xl sm:text-4xl text-light-text dark:text-night-text bg-transparent border-b-2 border-light-border dark:border-night-border pb-3 focus:outline-none focus:border-pastel-yellow transition-colors"
+            className="w-full text-center font-serif italic font-semibold text-3xl sm:text-4xl md:text-5xl text-light-text dark:text-night-text bg-transparent border-b-2 border-light-border dark:border-night-border pb-3 focus:outline-none focus:border-pastel-yellow transition-colors"
           />
+
 
           {/* Duration Presets */}
           <div className="space-y-2.5 pt-3 border-t-2 border-light-border/70 dark:border-night-border/70">

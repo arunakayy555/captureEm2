@@ -12,6 +12,7 @@ export interface Task {
   status: TaskStatus;
   section: TaskSection;
   deadline?: string;
+  scheduled_date?: string; // YYYY-MM-DD format for calendar integration
   estimated_time?: string;
   created_at: string;
   completed_at?: string;
@@ -21,6 +22,21 @@ export interface Task {
   urgency?: TaskUrgency;
   project_id?: string;
 }
+
+export type CalendarEventColor = 'yellow' | 'blue' | 'lavender' | 'sage' | 'pink' | 'mauve';
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  start_time?: string; // e.g. "10:00" or "10:00 AM"
+  end_time?: string; // e.g. "11:30" or "11:30 AM"
+  notes?: string;
+  color?: CalendarEventColor;
+  created_at?: string;
+  updated_at?: string;
+}
+
 
 export type ProjectStatus = 'active' | 'shelf';
 
@@ -73,13 +89,18 @@ export interface BodyTask {
 }
 
 export interface BodyWellness {
+  id?: string;
   date: string; // YYYY-MM-DD
   energy: number; // 1 - 10
   sleep: SleepQuality;
   movement: MovementStatus;
   water: WaterStatus;
   tasks: BodyTask[];
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
 }
+
 
 export interface WeekReview {
   id: string;
@@ -97,10 +118,28 @@ export interface WeekReview {
   next_focus: string;
 }
 
+export type PurchaseStatus = 'active' | 'purchased' | 'discarded';
+
+export interface PurchaseItem {
+  id: string;
+  name: string;
+  notes?: string;
+  status: PurchaseStatus;
+  created_at: string;
+  purchased_at?: string;
+  discarded_at?: string;
+  updated_at?: string;
+}
+
+export type AppTheme = 'night' | 'light' | 'cotton_candy';
+export type CottonCandyPanelMode = 'light' | 'dark';
+
 export interface UserSettings {
-  theme: 'night' | 'light';
+  theme: AppTheme;
+  cottonCandyPanelMode?: CottonCandyPanelMode;
   focusDuration: number;
   soundEnabled: boolean;
 }
 
-export type PageId = 'home' | 'focus' | 'tasks' | 'projects' | 'body' | 'for_fun' | 'review';
+export type PageId = 'home' | 'focus' | 'tasks' | 'projects' | 'body' | 'for_fun' | 'review' | 'purchases';
+

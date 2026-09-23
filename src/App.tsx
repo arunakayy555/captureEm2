@@ -12,6 +12,7 @@ import { ProjectsPage } from './pages/ProjectsPage';
 import { BodyPage } from './pages/BodyPage';
 import { ForFunPage } from './pages/ForFunPage';
 import { ReviewPage } from './pages/ReviewPage';
+import { PurchasesPage } from './pages/PurchasesPage';
 import { AuthPage } from './pages/AuthPage';
 
 export const App: React.FC = () => {
@@ -47,6 +48,8 @@ export const App: React.FC = () => {
         return <TasksPage />;
       case 'projects':
         return <ProjectsPage />;
+      case 'purchases':
+        return <PurchasesPage />;
       case 'body':
         return <BodyPage />;
       case 'for_fun':

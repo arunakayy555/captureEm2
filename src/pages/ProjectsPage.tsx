@@ -58,17 +58,18 @@ export const ProjectsPage: React.FC = () => {
   const shelfProjects = projects.filter((p) => p.status === 'shelf');
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-10 animate-fadeIn">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10 animate-fadeIn">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-light-border/80 dark:border-night-border/80 pb-6">
         <div>
-          <h1 className="font-serif italic font-semibold text-4xl sm:text-5xl text-light-text dark:text-night-text tracking-tight">
+          <h1 className="font-serif italic font-semibold text-5xl sm:text-6xl text-light-text dark:text-night-text tracking-tight">
             things i'm making
           </h1>
-          <p className="font-serif italic font-medium text-xl sm:text-2xl text-light-muted dark:text-night-muted mt-1">
+          <p className="font-serif italic font-medium text-2xl sm:text-3xl text-light-muted dark:text-night-muted mt-1.5">
             creative projects and things bigger than a single task
           </p>
         </div>
+
 
         {!isCreating && (
           <button
@@ -157,7 +158,7 @@ export const ProjectsPage: React.FC = () => {
         </div>
 
         {activeProjects.length > 0 ? (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {activeProjects.map((project) => (
               <ProjectCard
                 key={project.id}
@@ -199,7 +200,7 @@ export const ProjectsPage: React.FC = () => {
         </div>
 
         {shelfProjects.length > 0 ? (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {shelfProjects.map((project) => (
               <ProjectCard
                 key={project.id}
