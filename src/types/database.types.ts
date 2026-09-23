@@ -298,6 +298,41 @@ export interface Database {
           updated_at?: string;
         };
       };
+      purchase_items: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          notes: string | null;
+          status: 'active' | 'purchased' | 'discarded';
+          created_at: string;
+          purchased_at: string | null;
+          discarded_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          user_id: string;
+          name: string;
+          notes?: string | null;
+          status?: 'active' | 'purchased' | 'discarded';
+          created_at?: string;
+          purchased_at?: string | null;
+          discarded_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          notes?: string | null;
+          status?: 'active' | 'purchased' | 'discarded';
+          created_at?: string;
+          purchased_at?: string | null;
+          discarded_at?: string | null;
+          updated_at?: string;
+        };
+      };
     };
   };
 }

@@ -1,4 +1,4 @@
-import { ForFunItem, BodyWellness, UserSettings } from '../types';
+import { ForFunItem, BodyWellness, UserSettings, PurchaseItem } from '../types';
 import {
   INITIAL_SETTINGS,
   INITIAL_FOR_FUN,
@@ -9,6 +9,7 @@ const KEYS = {
   SETTINGS: 'capture_em_settings_v1',
   FOR_FUN: 'capture_em_for_fun_v1',
   BODY: 'capture_em_body_v1',
+  PURCHASES: 'capture_em_purchases_v1',
 };
 
 // Obsolete local keys to purge
@@ -75,6 +76,20 @@ export const storage = {
   saveBody: (body: BodyWellness) => {
     try {
       localStorage.setItem(KEYS.BODY, JSON.stringify(body));
+    } catch {}
+  },
+
+  getPurchases: (): PurchaseItem[] => {
+    try {
+      const data = localStorage.getItem(KEYS.PURCHASES);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+  savePurchases: (items: PurchaseItem[]) => {
+    try {
+      localStorage.setItem(KEYS.PURCHASES, JSON.stringify(items));
     } catch {}
   },
 };

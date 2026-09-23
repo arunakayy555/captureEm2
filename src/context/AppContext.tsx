@@ -148,7 +148,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [focusSessions, setFocusSessions] = useState<FocusSession[]>([]);
   const [reviews, setReviews] = useState<WeekReview[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
-  const [purchases, setPurchases] = useState<PurchaseItem[]>([]);
+  const [purchases, setPurchases] = useState<PurchaseItem[]>(storage.getPurchases);
 
   const [activeFocusTask, setActiveFocusTask] = useState<string>('');
   const [activeFocusTaskId, setActiveFocusTaskId] = useState<string | undefined>(undefined);
@@ -181,7 +181,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setReviews([]);
       setCalendarEvents([]);
       setBodyEntries([]);
-      setPurchases([]);
+      setPurchases(storage.getPurchases());
       return;
     }
 
@@ -219,8 +219,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (bodyRes.data) {
           setBodyEntries(bodyRes.data);
         }
-        if (purchasesRes.data) {
+        if (purchasesRes.data && purchasesRes.data.length > 0) {
           setPurchases(purchasesRes.data);
+          storage.savePurchases(purchasesRes.data);
         }
       } catch (err) {
         console.error('Failed to load cloud data:', err);
@@ -234,10 +235,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [user?.id]);
 
-  // Sync local-only sections with local storage
+  // Sync local items with local storage
   useEffect(() => {
     storage.saveForFun(forFunItems);
   }, [forFunItems]);
+
+  useEffect(() => {
+    storage.savePurchases(purchases);
+  }, [purchases]);
 
 
 
@@ -938,11 +943,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       purchaseService.createPurchase(user.id, newItem).then((res) => {
         if (res.error) {
           console.error('Error creating purchase item in Supabase:', res.error);
-          showToast('unable to sync with cloud');
+          const isTableMissing = res.error.message?.includes('does not exist') || res.error.message?.includes('not found') || (res.error as any).code === '42P01';
+          if (isTableMissing) {
+            console.warn('Note: The "purchase_items" table is not created in your Supabase database yet. Items are safely saved locally.');
+          } else {
+            showToast('unable to sync with cloud');
+          }
         }
       }).catch((err) => {
         console.error('Error creating purchase item in Supabase:', err);
-        showToast('unable to sync with cloud');
       });
     }
 
@@ -973,11 +982,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       purchaseService.updatePurchase(user.id, id, updates).then((res) => {
         if (res.error) {
           console.error('Error updating purchase item in Supabase:', res.error);
-          showToast('unable to sync with cloud');
+          const isTableMissing = res.error.message?.includes('does not exist') || res.error.message?.includes('not found') || (res.error as any).code === '42P01';
+          if (!isTableMissing) {
+            showToast('unable to sync with cloud');
+          }
         }
       }).catch((err) => {
         console.error('Error updating purchase item in Supabase:', err);
-        showToast('unable to sync with cloud');
       });
     }
   };
@@ -1009,11 +1020,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }).then((res) => {
         if (res.error) {
           console.error('Error updating purchase status in Supabase:', res.error);
-          showToast('unable to sync with cloud');
+          const isTableMissing = res.error.message?.includes('does not exist') || res.error.message?.includes('not found') || (res.error as any).code === '42P01';
+          if (!isTableMissing) {
+            showToast('unable to sync with cloud');
+          }
         }
       }).catch((err) => {
         console.error('Error updating purchase status in Supabase:', err);
-        showToast('unable to sync with cloud');
       });
     }
 
@@ -1051,11 +1064,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }).then((res) => {
         if (res.error) {
           console.error('Error discarding purchase in Supabase:', res.error);
-          showToast('unable to sync with cloud');
+          const isTableMissing = res.error.message?.includes('does not exist') || res.error.message?.includes('not found') || (res.error as any).code === '42P01';
+          if (!isTableMissing) {
+            showToast('unable to sync with cloud');
+          }
         }
       }).catch((err) => {
         console.error('Error discarding purchase in Supabase:', err);
-        showToast('unable to sync with cloud');
       });
     }
 
@@ -1088,11 +1103,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }).then((res) => {
         if (res.error) {
           console.error('Error restoring purchase in Supabase:', res.error);
-          showToast('unable to sync with cloud');
+          const isTableMissing = res.error.message?.includes('does not exist') || res.error.message?.includes('not found') || (res.error as any).code === '42P01';
+          if (!isTableMissing) {
+            showToast('unable to sync with cloud');
+          }
         }
       }).catch((err) => {
         console.error('Error restoring purchase in Supabase:', err);
-        showToast('unable to sync with cloud');
       });
     }
 
@@ -1106,11 +1123,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       purchaseService.deletePurchase(user.id, id).then((res) => {
         if (res.error) {
           console.error('Error deleting purchase item in Supabase:', res.error);
-          showToast('unable to sync with cloud');
+          const isTableMissing = res.error.message?.includes('does not exist') || res.error.message?.includes('not found') || (res.error as any).code === '42P01';
+          if (!isTableMissing) {
+            showToast('unable to sync with cloud');
+          }
         }
       }).catch((err) => {
         console.error('Error deleting purchase item in Supabase:', err);
-        showToast('unable to sync with cloud');
       });
     }
     showToast('item removed');

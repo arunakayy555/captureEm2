@@ -18,17 +18,25 @@ const mapRowToPurchase = (row: any): PurchaseItem => ({
 /**
  * Transforms client PurchaseItem model to Supabase database row format
  */
-const mapPurchaseToRow = (userId: string, item: PurchaseItem) => ({
-  id: item.id,
-  user_id: userId,
-  name: item.name,
-  notes: item.notes || null,
-  status: item.status,
-  created_at: item.created_at || new Date().toISOString(),
-  purchased_at: item.purchased_at || null,
-  discarded_at: item.discarded_at || null,
-  updated_at: item.updated_at || new Date().toISOString(),
-});
+const mapPurchaseToRow = (userId: string, item: PurchaseItem) => {
+  const row: Record<string, any> = {
+    id: item.id,
+    user_id: userId,
+    name: item.name,
+    notes: item.notes || null,
+    status: item.status,
+    created_at: item.created_at || new Date().toISOString(),
+    purchased_at: item.purchased_at || null,
+    updated_at: item.updated_at || new Date().toISOString(),
+  };
+
+  // Only include discarded_at if present
+  if (item.discarded_at !== undefined) {
+    row.discarded_at = item.discarded_at;
+  }
+
+  return row;
+};
 
 export const purchaseService = {
   /**
@@ -67,8 +75,14 @@ export const purchaseService = {
 
     try {
       const row = mapPurchaseToRow(userId, item);
-      const { error } = await supabase.from('purchase_items').upsert(row, { onConflict: 'id' });
+      const { error } = await supabase.from('purchase_items').insert(row);
       if (error) {
+        // Fallback: If discarded_at column does not exist on table, retry without it
+        if (error.message?.includes('discarded_at') || (error as any).code === '42703') {
+          const { discarded_at, ...cleanRow } = row;
+          const retry = await supabase.from('purchase_items').insert(cleanRow);
+          if (!retry.error) return { error: null };
+        }
         return { error: new Error(error.message) };
       }
       return { error: null };
@@ -98,7 +112,9 @@ export const purchaseService = {
       if (updates.notes !== undefined) updateData.notes = updates.notes || null;
       if (updates.status !== undefined) updateData.status = updates.status;
       if ('purchased_at' in updates) updateData.purchased_at = updates.purchased_at || null;
-      if ('discarded_at' in updates) updateData.discarded_at = updates.discarded_at || null;
+      if ('discarded_at' in updates && updates.discarded_at !== undefined) {
+        updateData.discarded_at = updates.discarded_at || null;
+      }
 
       const { error } = await supabase
         .from('purchase_items')
@@ -107,6 +123,16 @@ export const purchaseService = {
         .eq('user_id', userId);
 
       if (error) {
+        // Fallback: If discarded_at column does not exist on table, retry without it
+        if (error.message?.includes('discarded_at') || (error as any).code === '42703') {
+          delete updateData.discarded_at;
+          const retry = await supabase
+            .from('purchase_items')
+            .update(updateData)
+            .eq('id', itemId)
+            .eq('user_id', userId);
+          if (!retry.error) return { error: null };
+        }
         return { error: new Error(error.message) };
       }
       return { error: null };
