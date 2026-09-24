@@ -219,7 +219,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (bodyRes.data) {
           setBodyEntries(bodyRes.data);
         }
-        if (purchasesRes.data && purchasesRes.data.length > 0) {
+        if (purchasesRes.data) {
           setPurchases(purchasesRes.data);
           storage.savePurchases(purchasesRes.data);
         }
@@ -818,24 +818,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const completedTasksCount = tasks.filter((t) => t.status === 'completed').length;
     const activeProjectsCount = projects.filter((p) => p.status === 'active').length;
 
+    const reviewDate = reviewData.date || new Date().toISOString();
+    const targetDateKey = toDateKey(reviewDate);
+
+    // Look for existing review by ID or by matching date
+    const existing = reviews.find(
+      (r) => (reviewData.id && reviewData.id !== 'rev-current' && r.id === reviewData.id) ||
+             (toDateKey(r.date) === targetDateKey)
+    );
+
+    const targetId = existing
+      ? existing.id
+      : (reviewData.id && reviewData.id !== 'rev-current' ? reviewData.id : 'rev-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6));
+
     const newRev: WeekReview = {
-      id: reviewData.id && reviewData.id !== 'rev-current' ? reviewData.id : 'rev-' + Date.now(),
-      week: reviewData.week || 'This Week',
-      date: reviewData.date || new Date().toISOString(),
-      completed: reviewData.completed || {
+      id: targetId,
+      week: reviewData.week || (existing?.week ?? 'This Week'),
+      date: reviewDate,
+      completed: reviewData.completed || existing?.completed || {
         focusSessions: focusSessions.length,
         focusHours: totalFocusHours,
         tasksCount: completedTasksCount,
         projectsCount: activeProjectsCount,
       },
-      made: reviewData.made || '',
-      learned: reviewData.learned || '',
-      for_fun: reviewData.for_fun || '',
-      next_focus: reviewData.next_focus || '',
+      made: reviewData.made !== undefined ? reviewData.made : (existing?.made || ''),
+      learned: reviewData.learned !== undefined ? reviewData.learned : (existing?.learned || ''),
+      for_fun: reviewData.for_fun !== undefined ? reviewData.for_fun : (existing?.for_fun || ''),
+      next_focus: reviewData.next_focus !== undefined ? reviewData.next_focus : (existing?.next_focus || ''),
     };
 
     setReviews((prev) => {
-      const existingIndex = prev.findIndex((r) => r.id === newRev.id);
+      const existingIndex = prev.findIndex((r) => r.id === newRev.id || toDateKey(r.date) === targetDateKey);
       if (existingIndex >= 0) {
         const updated = [...prev];
         updated[existingIndex] = newRev;

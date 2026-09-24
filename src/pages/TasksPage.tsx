@@ -11,6 +11,7 @@ import {
   Play,
   LayoutGrid,
   Columns,
+  Edit3,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Task, TaskSection, TaskImportance, TaskUrgency, TaskTag } from '../types';
@@ -371,6 +372,7 @@ export const TasksPage: React.FC = () => {
             tasks={getSectionTasks('now')}
             onToggleCompleted={toggleTaskCompleted}
             onDelete={deleteTask}
+            onUpdateTask={updateTask}
             onMoveSection={moveTaskSection}
             onSetRightNow={setTaskAsRightNow}
             onStartFocus={startFocusWithTask}
@@ -392,6 +394,7 @@ export const TasksPage: React.FC = () => {
             tasks={getSectionTasks('next')}
             onToggleCompleted={toggleTaskCompleted}
             onDelete={deleteTask}
+            onUpdateTask={updateTask}
             onMoveSection={moveTaskSection}
             onSetRightNow={setTaskAsRightNow}
             onStartFocus={startFocusWithTask}
@@ -413,6 +416,7 @@ export const TasksPage: React.FC = () => {
             tasks={getSectionTasks('later')}
             onToggleCompleted={toggleTaskCompleted}
             onDelete={deleteTask}
+            onUpdateTask={updateTask}
             onMoveSection={moveTaskSection}
             onSetRightNow={setTaskAsRightNow}
             onStartFocus={startFocusWithTask}
@@ -456,6 +460,7 @@ export const TasksPage: React.FC = () => {
                 tasks={tasks.filter((t) => getTaskCubicle(t) === 'top-left' && t.status === (showCompleted ? 'completed' : 'active'))}
                 onToggleCompleted={toggleTaskCompleted}
                 onDelete={deleteTask}
+                onUpdateTask={updateTask}
                 onStartFocus={startFocusWithTask}
                 onSetRightNow={setTaskAsRightNow}
                 onUpdateTags={handleUpdateTaskTags}
@@ -479,6 +484,7 @@ export const TasksPage: React.FC = () => {
                 tasks={tasks.filter((t) => getTaskCubicle(t) === 'top-right' && t.status === (showCompleted ? 'completed' : 'active'))}
                 onToggleCompleted={toggleTaskCompleted}
                 onDelete={deleteTask}
+                onUpdateTask={updateTask}
                 onStartFocus={startFocusWithTask}
                 onSetRightNow={setTaskAsRightNow}
                 onUpdateTags={handleUpdateTaskTags}
@@ -502,6 +508,7 @@ export const TasksPage: React.FC = () => {
                 tasks={tasks.filter((t) => getTaskCubicle(t) === 'bottom-left' && t.status === (showCompleted ? 'completed' : 'active'))}
                 onToggleCompleted={toggleTaskCompleted}
                 onDelete={deleteTask}
+                onUpdateTask={updateTask}
                 onStartFocus={startFocusWithTask}
                 onSetRightNow={setTaskAsRightNow}
                 onUpdateTags={handleUpdateTaskTags}
@@ -525,11 +532,392 @@ export const TasksPage: React.FC = () => {
                 tasks={tasks.filter((t) => getTaskCubicle(t) === 'bottom-right' && t.status === (showCompleted ? 'completed' : 'active'))}
                 onToggleCompleted={toggleTaskCompleted}
                 onDelete={deleteTask}
+                onUpdateTask={updateTask}
                 onStartFocus={startFocusWithTask}
                 onSetRightNow={setTaskAsRightNow}
                 onUpdateTags={handleUpdateTaskTags}
               />
             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+interface TaskItemCardProps {
+  task: Task;
+  onToggleCompleted: (id: string) => void;
+  onDelete: (id: string) => void;
+  onUpdateTask: (id: string, updates: Partial<Task>) => void;
+  onMoveSection?: (id: string, section: TaskSection) => void;
+  onSetRightNow?: (id: string) => void;
+  onStartFocus: (title: string, duration?: number, taskId?: string, projectId?: string) => void;
+  onUpdateTags: (id: string, newImportance?: TaskImportance, newUrgency?: TaskUrgency) => void;
+  showSectionMoves?: boolean;
+  isCompact?: boolean;
+}
+
+const TaskItemCard: React.FC<TaskItemCardProps> = ({
+  task,
+  onToggleCompleted,
+  onDelete,
+  onUpdateTask,
+  onMoveSection,
+  onSetRightNow,
+  onStartFocus,
+  onUpdateTags,
+  showSectionMoves = false,
+  isCompact = false,
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(task.title);
+  const [editNote, setEditNote] = useState(task.note || '');
+  const [editSection, setEditSection] = useState<TaskSection>(task.section);
+  const [editImportance, setEditImportance] = useState<TaskImportance>(
+    task.importance === 'Not Important' || (task.tags && task.tags.includes('Not Important'))
+      ? 'Not Important'
+      : 'Important'
+  );
+  const [editUrgency, setEditUrgency] = useState<TaskUrgency>(
+    task.urgency === 'Not Urgent' || (task.tags && task.tags.includes('Not Urgent'))
+      ? 'Not Urgent'
+      : 'Urgent'
+  );
+  const [editEstimatedTime, setEditEstimatedTime] = useState(task.estimated_time || '');
+  const [editDeadline, setEditDeadline] = useState(task.deadline || '');
+
+  const handleStartEdit = () => {
+    setEditTitle(task.title);
+    setEditNote(task.note || '');
+    setEditSection(task.section);
+    setEditImportance(
+      task.importance === 'Not Important' || (task.tags && task.tags.includes('Not Important'))
+        ? 'Not Important'
+        : 'Important'
+    );
+    setEditUrgency(
+      task.urgency === 'Not Urgent' || (task.tags && task.tags.includes('Not Urgent'))
+        ? 'Not Urgent'
+        : 'Urgent'
+    );
+    setEditEstimatedTime(task.estimated_time || '');
+    setEditDeadline(task.deadline || '');
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTitle.trim()) return;
+
+    onUpdateTask(task.id, {
+      title: editTitle.trim(),
+      note: editNote.trim() || undefined,
+      section: editSection,
+      importance: editImportance,
+      urgency: editUrgency,
+      tags: [editImportance, editUrgency],
+      estimated_time: editEstimatedTime.trim() || undefined,
+      deadline: editDeadline.trim() || undefined,
+    });
+
+    setIsEditing(false);
+  };
+
+  const isCompleted = task.status === 'completed';
+  const isNotImportant = task.importance === 'Not Important' || (task.tags && task.tags.includes('Not Important'));
+  const isNotUrgent = task.urgency === 'Not Urgent' || (task.tags && task.tags.includes('Not Urgent'));
+  const currentImportance: TaskImportance = isNotImportant ? 'Not Important' : 'Important';
+  const currentUrgency: TaskUrgency = isNotUrgent ? 'Not Urgent' : 'Urgent';
+
+  if (isEditing) {
+    return (
+      <form
+        onSubmit={handleSaveEdit}
+        className="p-3.5 sm:p-4 rounded-2xl bg-light-surface dark:bg-night-surface border-2 border-pastel-yellow shadow-xs space-y-3 animate-fadeIn"
+      >
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] uppercase tracking-wider font-bold text-pastel-yellow-ink dark:text-pastel-yellow">
+            edit task
+          </span>
+          {showSectionMoves && (
+            <div className="flex items-center gap-1">
+              {(['now', 'next', 'later'] as TaskSection[]).map((sec) => (
+                <button
+                  key={sec}
+                  type="button"
+                  onClick={() => setEditSection(sec)}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all btn-clean ${
+                    editSection === sec
+                      ? 'bg-light-text text-light-bg dark:bg-night-text dark:text-night-bg shadow-xs'
+                      : 'bg-light-bg dark:bg-night-elevated text-light-muted dark:text-night-muted border border-light-border/70 dark:border-night-border/70'
+                  }`}
+                >
+                  {sec}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <input
+          type="text"
+          value={editTitle}
+          onChange={(e) => setEditTitle(e.target.value)}
+          placeholder="task title..."
+          autoFocus
+          className="w-full px-3 py-2 bg-light-bg dark:bg-night-elevated text-xs sm:text-sm text-light-text dark:text-night-text border border-light-border dark:border-night-border rounded-xl focus:outline-none focus:ring-1 focus:ring-pastel-yellow font-medium"
+        />
+
+        <textarea
+          value={editNote}
+          onChange={(e) => setEditNote(e.target.value)}
+          placeholder="optional note..."
+          rows={2}
+          className="w-full px-3 py-2 bg-light-bg dark:bg-night-elevated text-xs text-light-text dark:text-night-text border border-light-border dark:border-night-border rounded-xl focus:outline-none resize-none leading-relaxed"
+        />
+
+        {/* Tag pills */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setEditImportance(editImportance === 'Important' ? 'Not Important' : 'Important')}
+            className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold transition-all btn-clean ${
+              editImportance === 'Important'
+                ? 'bg-pastel-yellow/30 text-pastel-yellow-ink dark:text-pastel-yellow border border-pastel-yellow/50 shadow-xs'
+                : 'bg-pastel-lavender/30 text-pastel-lavender-ink dark:text-pastel-lavender border border-pastel-lavender/50 shadow-xs'
+            }`}
+          >
+            {editImportance}
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditUrgency(editUrgency === 'Urgent' ? 'Not Urgent' : 'Urgent')}
+            className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold transition-all btn-clean ${
+              editUrgency === 'Urgent'
+                ? 'bg-pastel-pink/30 text-pastel-pink-ink dark:text-pastel-pink border border-pastel-pink/50 shadow-xs'
+                : 'bg-pastel-blue/30 text-pastel-blue-ink dark:text-pastel-blue border border-pastel-blue/50 shadow-xs'
+            }`}
+          >
+            {editUrgency}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <input
+            type="text"
+            value={editEstimatedTime}
+            onChange={(e) => setEditEstimatedTime(e.target.value)}
+            placeholder="time (e.g. 30 min)"
+            className="px-2.5 py-1.5 bg-light-bg dark:bg-night-elevated text-xs text-light-text dark:text-night-text border border-light-border dark:border-night-border rounded-xl focus:outline-none"
+          />
+          <input
+            type="text"
+            value={editDeadline}
+            onChange={(e) => setEditDeadline(e.target.value)}
+            placeholder="deadline (optional)"
+            className="px-2.5 py-1.5 bg-light-bg dark:bg-night-elevated text-xs text-light-text dark:text-night-text border border-light-border dark:border-night-border rounded-xl focus:outline-none"
+          />
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-light-border/50 dark:border-night-border/50">
+          <button
+            type="button"
+            onClick={() => setIsEditing(false)}
+            className="px-3 py-1 text-xs text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text btn-clean"
+          >
+            cancel
+          </button>
+          <button
+            type="submit"
+            disabled={!editTitle.trim()}
+            className="px-4 py-1.5 bg-light-text text-light-bg dark:bg-night-text dark:text-night-bg rounded-lg text-xs font-semibold disabled:opacity-40 btn-clean shadow-xs"
+          >
+            save
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <div
+      className={`group p-3.5 sm:p-4 rounded-2xl ${
+        isCompact
+          ? 'bg-light-bg dark:bg-night-elevated border-2 border-light-border dark:border-night-border space-y-2.5'
+          : 'bg-light-surface dark:bg-night-surface border-2 transition-all duration-200'
+      } ${
+        task.is_right_now
+          ? 'border-pastel-yellow shadow-xs'
+          : !isCompact ? 'border-light-border dark:border-night-border hover:border-light-border dark:hover:border-night-border' : ''
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2.5">
+        <div className="flex items-start gap-2.5 min-w-0 flex-1">
+          <button
+            onClick={() => onToggleCompleted(task.id)}
+            className="mt-0.5 shrink-0 text-light-muted dark:text-night-muted hover:text-pastel-sage transition-colors"
+            title={isCompleted ? 'Mark active' : 'Mark complete'}
+          >
+            {isCompleted ? (
+              <CheckCircle2 className="w-4 h-4 text-pastel-sage stroke-[2.2]" />
+            ) : (
+              <Circle className="w-4 h-4 stroke-[2]" />
+            )}
+          </button>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span
+                className={`text-sm sm:text-base font-medium leading-snug ${
+                  isCompleted
+                    ? 'line-through text-light-muted dark:text-night-muted'
+                    : 'text-light-text dark:text-night-text'
+                }`}
+              >
+                {task.title}
+              </span>
+
+              {task.is_right_now && !isCompleted && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-pastel-yellow/20 text-light-text dark:text-pastel-yellow font-bold border border-pastel-yellow/40">
+                  right now
+                </span>
+              )}
+            </div>
+
+            {task.note && (
+              <p className="text-xs text-light-muted dark:text-night-muted mt-1 leading-relaxed font-normal">
+                {task.note}
+              </p>
+            )}
+
+            {/* Tag badges */}
+            {(task.tags || task.importance || task.urgency) && !isCompleted && (
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() =>
+                    onUpdateTags(
+                      task.id,
+                      currentImportance === 'Important' ? 'Not Important' : 'Important',
+                      undefined
+                    )
+                  }
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all btn-clean ${
+                    currentImportance === 'Important'
+                      ? 'bg-pastel-yellow/25 text-pastel-yellow-ink dark:text-pastel-yellow border border-pastel-yellow/40'
+                      : 'bg-pastel-lavender/25 text-pastel-lavender-ink dark:text-pastel-lavender border border-pastel-lavender/40'
+                  }`}
+                  title="Click to toggle importance"
+                >
+                  {currentImportance}
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onUpdateTags(
+                      task.id,
+                      undefined,
+                      currentUrgency === 'Urgent' ? 'Not Urgent' : 'Urgent'
+                    )
+                  }
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all btn-clean ${
+                    currentUrgency === 'Urgent'
+                      ? 'bg-pastel-pink/25 text-pastel-pink-ink dark:text-pastel-pink border border-pastel-pink/40'
+                      : 'bg-pastel-blue/25 text-pastel-blue-ink dark:text-pastel-blue border border-pastel-blue/40'
+                  }`}
+                  title="Click to toggle urgency"
+                >
+                  {currentUrgency}
+                </button>
+              </div>
+            )}
+
+            {(task.estimated_time || task.deadline) && (
+              <div className="flex items-center gap-2.5 mt-2 text-[11px] text-light-muted dark:text-night-muted font-medium">
+                {task.estimated_time && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3 stroke-[2]" />
+                    {task.estimated_time}
+                  </span>
+                )}
+                {task.deadline && (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3 stroke-[2]" />
+                    {task.deadline}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action icons */}
+        <div className="flex items-center gap-1 shrink-0 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+          {!isCompleted && (
+            <>
+              {onSetRightNow && isCompact && !task.is_right_now && (
+                <button
+                  onClick={() => onSetRightNow(task.id)}
+                  className="px-1.5 py-0.5 text-[10px] rounded bg-light-surface dark:bg-night-surface text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text btn-clean"
+                  title="Make right now"
+                >
+                  now
+                </button>
+              )}
+              <button
+                onClick={() => onStartFocus(task.title, 45, task.id, task.project_id)}
+                className="p-1 rounded-lg text-light-muted dark:text-night-muted hover:text-pastel-yellow hover:bg-light-bg dark:hover:bg-night-elevated transition-colors btn-clean"
+                title="Focus on this"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={handleStartEdit}
+            className="p-1 rounded-lg text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text hover:bg-light-bg dark:hover:bg-night-elevated transition-colors btn-clean"
+            title="Edit task"
+          >
+            <Edit3 className="w-3.5 h-3.5 stroke-[2]" />
+          </button>
+
+          <button
+            onClick={() => onDelete(task.id)}
+            className="p-1 rounded-lg text-light-muted dark:text-night-muted hover:text-red-400 hover:bg-light-bg dark:hover:bg-night-elevated transition-colors btn-clean"
+            title="Delete task"
+          >
+            <Trash2 className="w-3.5 h-3.5 stroke-[2]" />
+          </button>
+        </div>
+      </div>
+
+      {/* Section Movement Buttons in Column View */}
+      {showSectionMoves && !isCompleted && onMoveSection && (
+        <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-light-border/60 dark:border-night-border/60">
+          {onSetRightNow && !task.is_right_now && (
+            <button
+              onClick={() => onSetRightNow(task.id)}
+              className="text-[10px] font-medium text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text hover:underline transition-all"
+              title="Set as Right Now on Home"
+            >
+              make right now
+            </button>
+          )}
+          <div className="flex items-center gap-1 ml-auto text-[10px]">
+            {(['now', 'next', 'later'] as TaskSection[])
+              .filter((s) => s !== task.section)
+              .map((target) => (
+                <button
+                  key={target}
+                  onClick={() => onMoveSection(task.id, target)}
+                  className="px-1.5 py-0.5 rounded bg-light-bg dark:bg-night-elevated text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text border border-light-border/60 dark:border-night-border/60 transition-all btn-clean font-medium"
+                  title={`Move to ${target}`}
+                >
+                  → {target}
+                </button>
+              ))}
           </div>
         </div>
       )}
@@ -546,6 +934,7 @@ interface TaskColumnProps {
   tasks: Task[];
   onToggleCompleted: (id: string) => void;
   onDelete: (id: string) => void;
+  onUpdateTask: (id: string, updates: Partial<Task>) => void;
   onMoveSection: (id: string, section: TaskSection) => void;
   onSetRightNow: (id: string) => void;
   onStartFocus: (title: string, duration?: number, taskId?: string, projectId?: string) => void;
@@ -565,6 +954,7 @@ const TaskColumn: React.FC<TaskColumnProps> = ({
   tasks,
   onToggleCompleted,
   onDelete,
+  onUpdateTask,
   onMoveSection,
   onSetRightNow,
   onStartFocus,
@@ -636,175 +1026,20 @@ const TaskColumn: React.FC<TaskColumnProps> = ({
       {/* Task Cards List */}
       <div className="flex-1 space-y-2.5 overflow-y-auto pr-0.5">
         {tasks.length > 0 ? (
-          tasks.map((task) => {
-            const isCompleted = task.status === 'completed';
-            const isNotImportant = task.importance === 'Not Important' || (task.tags && task.tags.includes('Not Important'));
-            const isNotUrgent = task.urgency === 'Not Urgent' || (task.tags && task.tags.includes('Not Urgent'));
-            const currentImportance: TaskImportance = isNotImportant ? 'Not Important' : 'Important';
-            const currentUrgency: TaskUrgency = isNotUrgent ? 'Not Urgent' : 'Urgent';
-
-            return (
-              <div
-                key={task.id}
-                className={`group p-3.5 sm:p-4 rounded-2xl bg-light-surface dark:bg-night-surface border-2 transition-all duration-200 ${
-                  task.is_right_now
-                    ? 'border-pastel-yellow shadow-xs'
-                    : 'border-light-border dark:border-night-border hover:border-light-border dark:hover:border-night-border'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                    <button
-                      onClick={() => onToggleCompleted(task.id)}
-                      className="mt-0.5 shrink-0 text-light-muted dark:text-night-muted hover:text-pastel-sage transition-colors"
-                      title={isCompleted ? 'Mark active' : 'Mark complete'}
-                    >
-                      {isCompleted ? (
-                        <CheckCircle2 className="w-4 h-4 text-pastel-sage stroke-[2.2]" />
-                      ) : (
-                        <Circle className="w-4 h-4 stroke-[2]" />
-                      )}
-                    </button>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span
-                          className={`text-sm sm:text-base font-medium leading-snug ${
-                            isCompleted
-                              ? 'line-through text-light-muted dark:text-night-muted'
-                              : 'text-light-text dark:text-night-text'
-                          }`}
-                        >
-                          {task.title}
-                        </span>
-
-                        {task.is_right_now && !isCompleted && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-pastel-yellow/20 text-light-text dark:text-pastel-yellow font-bold border border-pastel-yellow/40">
-                            right now
-                          </span>
-                        )}
-                      </div>
-
-                      {task.note && (
-                        <p className="text-xs text-light-muted dark:text-night-muted mt-1 leading-relaxed font-normal">
-                          {task.note}
-                        </p>
-                      )}
-
-                      {/* Tag badges */}
-                      {(task.tags || task.importance || task.urgency) && !isCompleted && (
-                        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onUpdateTags(
-                                task.id,
-                                currentImportance === 'Important' ? 'Not Important' : 'Important',
-                                undefined
-                              )
-                            }
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all btn-clean ${
-                              currentImportance === 'Important'
-                                ? 'bg-pastel-yellow/25 text-pastel-yellow-ink dark:text-pastel-yellow border border-pastel-yellow/40'
-                                : 'bg-pastel-lavender/25 text-pastel-lavender-ink dark:text-pastel-lavender border border-pastel-lavender/40'
-                            }`}
-                            title="Click to toggle importance"
-                          >
-                            {currentImportance}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onUpdateTags(
-                                task.id,
-                                undefined,
-                                currentUrgency === 'Urgent' ? 'Not Urgent' : 'Urgent'
-                              )
-                            }
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all btn-clean ${
-                              currentUrgency === 'Urgent'
-                                ? 'bg-pastel-pink/25 text-pastel-pink-ink dark:text-pastel-pink border border-pastel-pink/40'
-                                : 'bg-pastel-blue/25 text-pastel-blue-ink dark:text-pastel-blue border border-pastel-blue/40'
-                            }`}
-                            title="Click to toggle urgency"
-                          >
-                            {currentUrgency}
-                          </button>
-                        </div>
-                      )}
-
-                      {(task.estimated_time || task.deadline) && (
-                        <div className="flex items-center gap-2.5 mt-2 text-[11px] text-light-muted dark:text-night-muted font-medium">
-                          {task.estimated_time && (
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3 stroke-[2]" />
-                              {task.estimated_time}
-                            </span>
-                          )}
-                          {task.deadline && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3 stroke-[2]" />
-                              {task.deadline}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions: Start Focus, Move Section, Delete */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    {!isCompleted && (
-                      <button
-                        onClick={() => onStartFocus(task.title, 45, task.id, task.project_id)}
-                        className="p-1 rounded-lg text-light-muted dark:text-night-muted hover:text-pastel-yellow hover:bg-light-bg dark:hover:bg-night-elevated transition-colors btn-clean"
-                        title="Focus on this"
-                      >
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => onDelete(task.id)}
-                      className="p-1 rounded-lg text-light-muted dark:text-night-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity btn-clean"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 stroke-[2]" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Section Movement Buttons */}
-                {!isCompleted && (
-                  <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-light-border/60 dark:border-night-border/60">
-                    {!task.is_right_now && (
-                      <button
-                        onClick={() => onSetRightNow(task.id)}
-                        className="text-[10px] font-medium text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text hover:underline transition-all"
-                        title="Set as Right Now on Home"
-                      >
-                        make right now
-                      </button>
-                    )}
-                    <div className="flex items-center gap-1 ml-auto text-[10px]">
-                      {(['now', 'next', 'later'] as TaskSection[])
-                        .filter((s) => s !== section)
-                        .map((target) => (
-                          <button
-                            key={target}
-                            onClick={() => onMoveSection(task.id, target)}
-                            className="px-1.5 py-0.5 rounded bg-light-bg dark:bg-night-elevated text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text border border-light-border/60 dark:border-night-border/60 transition-all btn-clean font-medium"
-                            title={`Move to ${target}`}
-                          >
-                            → {target}
-                          </button>
-                        ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })
+          tasks.map((task) => (
+            <TaskItemCard
+              key={task.id}
+              task={task}
+              onToggleCompleted={onToggleCompleted}
+              onDelete={onDelete}
+              onUpdateTask={onUpdateTask}
+              onMoveSection={onMoveSection}
+              onSetRightNow={onSetRightNow}
+              onStartFocus={onStartFocus}
+              onUpdateTags={onUpdateTags}
+              showSectionMoves={true}
+            />
+          ))
         ) : (
           <div className="py-8 px-3 text-center border-2 border-dashed border-light-border/60 dark:border-night-border/60 rounded-2xl">
             <p className="text-xs font-serif italic text-light-muted dark:text-night-muted leading-relaxed">
@@ -823,6 +1058,7 @@ interface QuadrantTaskListProps {
   tasks: Task[];
   onToggleCompleted: (id: string) => void;
   onDelete: (id: string) => void;
+  onUpdateTask: (id: string, updates: Partial<Task>) => void;
   onStartFocus: (title: string, duration?: number, taskId?: string, projectId?: string) => void;
   onSetRightNow: (id: string) => void;
   onUpdateTags: (id: string, newImportance?: TaskImportance, newUrgency?: TaskUrgency) => void;
@@ -832,6 +1068,7 @@ const QuadrantTaskList: React.FC<QuadrantTaskListProps> = ({
   tasks,
   onToggleCompleted,
   onDelete,
+  onUpdateTask,
   onStartFocus,
   onSetRightNow,
   onUpdateTags,
@@ -848,127 +1085,20 @@ const QuadrantTaskList: React.FC<QuadrantTaskListProps> = ({
 
   return (
     <div className="space-y-2.5">
-      {tasks.map((task) => {
-        const isCompleted = task.status === 'completed';
-        const isNotImportant = task.importance === 'Not Important' || (task.tags && task.tags.includes('Not Important'));
-        const isNotUrgent = task.urgency === 'Not Urgent' || (task.tags && task.tags.includes('Not Urgent'));
-        const currentImportance: TaskImportance = isNotImportant ? 'Not Important' : 'Important';
-        const currentUrgency: TaskUrgency = isNotUrgent ? 'Not Urgent' : 'Urgent';
-
-        return (
-          <div
-            key={task.id}
-            className="group p-3.5 rounded-2xl bg-light-bg dark:bg-night-elevated border-2 border-light-border dark:border-night-border space-y-2.5 transition-all"
-          >
-            <div className="flex items-start justify-between gap-2.5">
-              <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                <button
-                  onClick={() => onToggleCompleted(task.id)}
-                  className="mt-0.5 shrink-0 text-light-muted dark:text-night-muted hover:text-pastel-sage transition-colors"
-                  title={isCompleted ? 'Mark active' : 'Mark complete'}
-                >
-                  {isCompleted ? (
-                    <CheckCircle2 className="w-4 h-4 text-pastel-sage stroke-[2.2]" />
-                  ) : (
-                    <Circle className="w-4 h-4 stroke-[2]" />
-                  )}
-                </button>
-                <div className="min-w-0 flex-1">
-                  <span
-                    className={`text-xs sm:text-sm block font-medium leading-snug ${
-                      isCompleted
-                        ? 'line-through text-light-muted dark:text-night-muted'
-                        : 'text-light-text dark:text-night-text'
-                    }`}
-                  >
-                    {task.title}
-                  </span>
-                  {task.note && (
-                    <p className="text-[11px] text-light-muted dark:text-night-muted mt-0.5 leading-relaxed truncate">
-                      {task.note}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1 shrink-0 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                {!isCompleted && (
-                  <>
-                    <button
-                      onClick={() => onSetRightNow(task.id)}
-                      className="px-1.5 py-0.5 text-[10px] rounded bg-light-surface dark:bg-night-surface text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text btn-clean"
-                      title="Make right now"
-                    >
-                      now
-                    </button>
-                    <button
-                      onClick={() => onStartFocus(task.title, 30, task.id, task.project_id)}
-                      className="p-1 rounded-lg text-light-muted dark:text-night-muted hover:text-pastel-yellow btn-clean"
-                      title="Focus"
-                    >
-                      <Play className="w-3 h-3 fill-current" />
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={() => onDelete(task.id)}
-                  className="p-1 rounded-lg text-light-muted dark:text-night-muted hover:text-red-400 btn-clean"
-                  title="Delete"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </div>
-            </div>
-
-            {/* Editable Tags Pills */}
-            {!isCompleted && (
-              <div className="flex items-center justify-between pt-2 border-t border-light-border/50 dark:border-night-border/50">
-                <span className="text-[10px] font-serif italic text-light-muted dark:text-night-muted">
-                  tags (click to switch):
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdateTags(
-                        task.id,
-                        currentImportance === 'Important' ? 'Not Important' : 'Important',
-                        undefined
-                      )
-                    }
-                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all btn-clean ${
-                      currentImportance === 'Important'
-                        ? 'bg-pastel-yellow/25 text-pastel-yellow-ink dark:text-pastel-yellow border border-pastel-yellow/40 hover:opacity-80'
-                        : 'bg-pastel-lavender/25 text-pastel-lavender-ink dark:text-pastel-lavender border border-pastel-lavender/40 hover:opacity-80'
-                    }`}
-                    title="Click to switch importance"
-                  >
-                    {currentImportance}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdateTags(
-                        task.id,
-                        undefined,
-                        currentUrgency === 'Urgent' ? 'Not Urgent' : 'Urgent'
-                      )
-                    }
-                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all btn-clean ${
-                      currentUrgency === 'Urgent'
-                        ? 'bg-pastel-pink/25 text-pastel-pink-ink dark:text-pastel-pink border border-pastel-pink/40 hover:opacity-80'
-                        : 'bg-pastel-blue/25 text-pastel-blue-ink dark:text-pastel-blue border border-pastel-blue/40 hover:opacity-80'
-                    }`}
-                    title="Click to switch urgency"
-                  >
-                    {currentUrgency}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {tasks.map((task) => (
+        <TaskItemCard
+          key={task.id}
+          task={task}
+          onToggleCompleted={onToggleCompleted}
+          onDelete={onDelete}
+          onUpdateTask={onUpdateTask}
+          onSetRightNow={onSetRightNow}
+          onStartFocus={onStartFocus}
+          onUpdateTags={onUpdateTags}
+          showSectionMoves={false}
+          isCompact={true}
+        />
+      ))}
     </div>
   );
 };

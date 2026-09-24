@@ -719,32 +719,148 @@ export const ReviewPage: React.FC = () => {
                   </div>
                 )}
 
-                {hasReflection ? (
-                  <div className="p-4 rounded-2xl bg-light-bg/70 dark:bg-night-elevated/70 border border-light-border/60 dark:border-night-border/60 space-y-2">
-                    <div className="flex items-center justify-between">
+                {/* Reflection View or Edit in Month View */}
+                {!isEditingReflection ? (
+                  hasReflection ? (
+                    <div className="p-4 rounded-2xl bg-light-bg/70 dark:bg-night-elevated/70 border border-light-border/60 dark:border-night-border/60 space-y-2.5">
+                      <div className="flex items-center justify-between pb-1 border-b border-light-border/40 dark:border-night-border/40">
+                        <div className="flex items-center gap-2 text-pastel-mauve-ink dark:text-pastel-mauve">
+                          <BookOpen className="w-4 h-4 stroke-[2]" />
+                          <span className="text-xs font-bold uppercase tracking-wider">reflection</span>
+                        </div>
+                        <button
+                          onClick={() => setIsEditingReflection(true)}
+                          className="text-xs text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text flex items-center gap-1 btn-clean font-serif italic"
+                        >
+                          <Edit3 className="w-3 h-3 stroke-[2]" />
+                          <span>edit</span>
+                        </button>
+                      </div>
+                      <div className="space-y-2 pt-1">
+                        {selectedDateReview?.made && (
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-muted dark:text-night-muted block">
+                              made:
+                            </span>
+                            <p className="font-serif italic text-xs sm:text-sm text-light-text dark:text-night-text mt-0.5 leading-relaxed">
+                              {selectedDateReview.made}
+                            </p>
+                          </div>
+                        )}
+                        {selectedDateReview?.learned && (
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-muted dark:text-night-muted block">
+                              learned:
+                            </span>
+                            <p className="font-serif italic text-xs sm:text-sm text-light-text dark:text-night-text mt-0.5 leading-relaxed">
+                              {selectedDateReview.learned}
+                            </p>
+                          </div>
+                        )}
+                        {selectedDateReview?.for_fun && (
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-muted dark:text-night-muted block">
+                              for fun:
+                            </span>
+                            <p className="font-serif italic text-xs sm:text-sm text-light-text dark:text-night-text mt-0.5 leading-relaxed">
+                              {selectedDateReview.for_fun}
+                            </p>
+                          </div>
+                        )}
+                        {selectedDateReview?.next_focus && (
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-muted dark:text-night-muted block">
+                              next focus:
+                            </span>
+                            <p className="font-serif italic text-xs sm:text-sm text-light-text dark:text-night-text mt-0.5 leading-relaxed">
+                              {selectedDateReview.next_focus}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setIsEditingReflection(true)}
+                      className="w-full py-2.5 rounded-2xl border-2 border-dashed border-light-border dark:border-night-border text-xs font-semibold text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text hover:bg-light-bg dark:hover:bg-night-elevated transition-all btn-clean"
+                    >
+                      + log reflection for this date
+                    </button>
+                  )
+                ) : (
+                  <form onSubmit={handleSaveReflection} className="p-4 rounded-2xl bg-light-bg/70 dark:bg-night-elevated/70 border border-light-border/60 dark:border-night-border/60 space-y-3">
+                    <div className="flex items-center justify-between pb-1 border-b border-light-border/50 dark:border-night-border/50">
                       <div className="flex items-center gap-2 text-pastel-mauve-ink dark:text-pastel-mauve">
                         <BookOpen className="w-4 h-4 stroke-[2]" />
-                        <span className="text-xs font-bold uppercase tracking-wider">reflection</span>
+                        <span className="text-xs font-bold uppercase tracking-wider">
+                          {hasReflection ? 'edit reflection' : 'log reflection'}
+                        </span>
                       </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-pastel-mauve-ink dark:text-pastel-mauve block mb-1">
+                        made
+                      </label>
+                      <textarea
+                        value={made}
+                        onChange={(e) => setMade(e.target.value)}
+                        rows={2}
+                        placeholder="things created or accomplished..."
+                        className="w-full p-2 rounded-xl bg-light-surface dark:bg-night-surface border border-light-border dark:border-night-border text-xs text-light-text dark:text-night-text focus:outline-none resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-pastel-blue-ink dark:text-pastel-blue block mb-1">
+                        learned
+                      </label>
+                      <textarea
+                        value={learned}
+                        onChange={(e) => setLearned(e.target.value)}
+                        rows={2}
+                        placeholder="learnings or discoveries..."
+                        className="w-full p-2 rounded-xl bg-light-surface dark:bg-night-surface border border-light-border dark:border-night-border text-xs text-light-text dark:text-night-text focus:outline-none resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-pastel-pink-ink dark:text-pastel-pink block mb-1">
+                        for fun
+                      </label>
+                      <textarea
+                        value={forFun}
+                        onChange={(e) => setForFun(e.target.value)}
+                        rows={2}
+                        placeholder="joyful activities enjoyed..."
+                        className="w-full p-2 rounded-xl bg-light-surface dark:bg-night-surface border border-light-border dark:border-night-border text-xs text-light-text dark:text-night-text focus:outline-none resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-pastel-sage-ink dark:text-pastel-sage block mb-1">
+                        next focus
+                      </label>
+                      <textarea
+                        value={nextFocus}
+                        onChange={(e) => setNextFocus(e.target.value)}
+                        rows={2}
+                        placeholder="upcoming intentions or focus..."
+                        className="w-full p-2 rounded-xl bg-light-surface dark:bg-night-surface border border-light-border dark:border-night-border text-xs text-light-text dark:text-night-text focus:outline-none resize-none"
+                      />
+                    </div>
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-light-border/50 dark:border-night-border/50">
                       <button
-                        onClick={() => setIsEditingReflection(true)}
-                        className="text-xs text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text flex items-center gap-1 btn-clean font-serif italic"
+                        type="button"
+                        onClick={() => setIsEditingReflection(false)}
+                        className="px-3 py-1 text-xs text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text btn-clean"
                       >
-                        <Edit3 className="w-3 h-3 stroke-[2]" />
-                        <span>edit</span>
+                        cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-1.5 bg-light-text text-light-bg dark:bg-night-text dark:text-night-bg rounded-lg text-xs font-semibold btn-clean shadow-xs"
+                      >
+                        save
                       </button>
                     </div>
-                    <p className="font-serif italic text-xs sm:text-sm text-light-text dark:text-night-text leading-relaxed">
-                      {selectedDateReview?.made || selectedDateReview?.learned || selectedDateReview?.for_fun || selectedDateReview?.next_focus}
-                    </p>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setIsEditingReflection(true)}
-                    className="w-full py-2.5 rounded-2xl border-2 border-dashed border-light-border dark:border-night-border text-xs font-semibold text-light-muted dark:text-night-muted hover:text-light-text dark:hover:text-night-text hover:bg-light-bg dark:hover:bg-night-elevated transition-all btn-clean"
-                  >
-                    + log reflection for this date
-                  </button>
+                  </form>
                 )}
               </div>
             </div>
@@ -1084,6 +1200,16 @@ export const ReviewPage: React.FC = () => {
                           </p>
                         </div>
                       )}
+                      {selectedDateReview?.next_focus && (
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-light-muted dark:text-night-muted block">
+                            next focus:
+                          </span>
+                          <p className="font-serif italic text-xs sm:text-sm text-light-text dark:text-night-text mt-0.5">
+                            {selectedDateReview.next_focus}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-4 space-y-2">
@@ -1134,6 +1260,18 @@ export const ReviewPage: React.FC = () => {
                         onChange={(e) => setForFun(e.target.value)}
                         rows={2}
                         placeholder="joyful activities enjoyed..."
+                        className="w-full p-2.5 rounded-xl bg-light-bg dark:bg-night-elevated border border-light-border dark:border-night-border text-xs text-light-text dark:text-night-text focus:outline-none resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-pastel-sage-ink dark:text-pastel-sage block mb-1">
+                        next focus
+                      </label>
+                      <textarea
+                        value={nextFocus}
+                        onChange={(e) => setNextFocus(e.target.value)}
+                        rows={2}
+                        placeholder="upcoming intentions or focus..."
                         className="w-full p-2.5 rounded-xl bg-light-bg dark:bg-night-elevated border border-light-border dark:border-night-border text-xs text-light-text dark:text-night-text focus:outline-none resize-none"
                       />
                     </div>
